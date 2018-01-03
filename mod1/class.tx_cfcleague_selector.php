@@ -76,8 +76,8 @@ class tx_cfcleague_selector{
 		$objLeagues = $entries = array();
 		foreach($leagues as $league){
 			if(is_object($league)) {
-				$objLeagues[$league->uid] = $league; // Objekt merken
-				$entries[$league->uid] = $league->record['internal_name'] ? $league->record['internal_name'] : $league->record['name'];
+				$objLeagues[$league->getUid()] = $league; // Objekt merken
+				$entries[$league->getUid()] = $league->getProperty( $league->getProperty('internal_name') ? 'internal_name' : 'name');
 			}
 			else {
 				$entries[$league['uid']] = $league['internal_name'] ? $league['internal_name'] : $league['name'];
@@ -97,7 +97,7 @@ class tx_cfcleague_selector{
 			$cacheIcon = tx_rnbase_util_TYPO3::isTYPO70OrHigher() ?
 				$this->iconFactory->getIcon('actions-system-cache-clear', TYPO3\CMS\Core\Imaging\Icon::SIZE_SMALL)->render() :
 				'<img'.Tx_Rnbase_Backend_Utility_Icons::skinImg($GLOBALS['BACK_PATH'], 'gfx/clear_all_cache.gif', 'width="11" height="12"').' title="###LABEL_CLEAR_STATS_CACHE###" border="0" alt="Clear Cache" />';
-			$links .= ' ' . $this->getFormTool()->createLink('&clearCache=1', $pid, $cacheIcon);
+			$links .= ' ' . $this->getFormTool()->createLink('clearCache=1', $pid, $cacheIcon, ['params' => ['clearCache'=>1]]);
 
 			$links .= $this->getFormTool()->createNewLink('tx_cfcleague_competition', $pid, '');
 			$menu = $menu . '<span class="links col-md-2">' . $links . '</span>';
@@ -183,8 +183,9 @@ class tx_cfcleague_selector{
 		$globalClubs = intval(tx_rnbase_configurations::getExtensionCfgValue('cfc_league', 'useGlobalClubs')) > 0;
 		$clubOrdering = intval(tx_rnbase_configurations::getExtensionCfgValue('cfc_league', 'clubOrdering')) > 0;
 		$fields = array();
-		if(!$globalClubs)
+		if(!$globalClubs) {
 			$fields['CLUB.PID'][OP_EQ_INT] = $pid;
+		}
 		$dbOptions = array();
 		if($clubOrdering) {
 			$dbOptions['orderby']['CLUB.CITY'] = 'asc';
@@ -205,6 +206,7 @@ class tx_cfcleague_selector{
 			$entries[$options['firstItem']['id']] = $options['firstItem']['label'];
 		}
 
+		$clubOrdering = intval(tx_rnbase_configurations::getExtensionCfgValue('cfc_league', 'clubOrdering')) > 0;
 		foreach($clubs as $club){
 			$label = ($clubOrdering ? $club->getCity().' - ' : '') . $club->getName();
 			$objClubs[$club->getUid()] = $club;
@@ -258,16 +260,24 @@ class tx_cfcleague_selector{
 
 		$data = $this->getFormTool()->showMenu($pid, 'round', $this->MCONF['name'], $entries, $this->getScriptURI());
 		// In den Content einbauen
-		// Spielrunden sind keine Objekt, die bearbeitet werden können
+		// Spielrunden sind keine Objekte, die bearbeitet werden können
 		if($data['menu']) {
 			$keys = array_flip(array_keys($entries));
 			$currIdx = $keys[$data['value']];
 			$keys = array_flip($keys);
 			$prevIdx = ($currIdx > 0) ? $currIdx-1 : count($entries)-1;
 			$nextIdx = ($currIdx < (count($entries)-1)) ? $currIdx+1 : 0;
-			$prev = $this->getFormTool()->createLink('&SET[round]=' . ($keys[$prevIdx]), $pid, '&lt;');
-			$next = $this->getFormTool()->createLink('&SET[round]=' . ($keys[$nextIdx]), $pid, '&gt;');
-			$menu = '<div class="cfcselector"><div class="selector pull-left">' . $prev .''.$data['menu'].''.$next . '</div></div>';
+
+			$prev = $this->getFormTool()->createLink('SET[round]='.($keys[$prevIdx]), $pid, '&lt;');
+			$next = $this->getFormTool()->createLink('SET[round]='.($keys[$nextIdx]), $pid, '&gt;');
+			if (tx_rnbase_util_TYPO3::isTYPO76OrHigher()) {
+			    $menu = '<div class="cfcselector"><div class="selector col-md-2">'.$data['menu'].'</div></div>';
+			    $links = $prev . $next;
+			    $menu = $menu . '<span class="links col-md-2">' . $links . '</span>';
+			}
+			else {
+			    $menu = '<div class="cfcselector"><div class="selector">' . $prev .''.$data['menu'].''.$next . '</div></div>';
+			}
 		}
 		$content.= $menu;
 
@@ -289,7 +299,7 @@ class tx_cfcleague_selector{
 		// Zusätzlich noch einen Edit-Link setzen
 		$links = $this->getFormTool()->createEditLink('tx_cfcleague_games', $data['value']);
 		if($data['menu']) {
-			$menu = '<div class="cfcselector"><div class="selector col-md-2">' . $data['menu'] . '</div><div class="links">' . $links . '</div></div>';
+		    $menu = '<div class="cfcselector"><div class="selector col-md-2">' . $data['menu'] . '</div><div class="links col-md-2">' . $links . '</div></div>';
 		}
 		$content .= $menu;
 

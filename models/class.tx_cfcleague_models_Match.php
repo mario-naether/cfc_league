@@ -2,7 +2,7 @@
 /***************************************************************
  *  Copyright notice
  *
- *  (c) 2007-2010 Rene Nitzsche (rene@system25.de)
+ *  (c) 2007-2017 Rene Nitzsche (rene@system25.de)
  *  All rights reserved
  *
  *  This script is part of the TYPO3 project. The TYPO3 project is
@@ -186,8 +186,7 @@ class tx_cfcleague_models_Match extends tx_rnbase_model_base
      * $profiles = $profileSrv->loadProfiles($match->getPlayersHome());
      * </pre>
      *
-     * @param $all wenn
-     *            true werden auch die Ersatzspieler mit geliefert
+     * @param boolean $all wenn true werden auch die Ersatzspieler mit geliefert
      * @return string comma separated uids
      */
     public function getPlayersHome($all = false)
@@ -217,6 +216,26 @@ class tx_cfcleague_models_Match extends tx_rnbase_model_base
                 $ids = $ids . ',' . $this->getProperty('substitutes_guest');
         }
         return $ids;
+    }
+
+    /**
+     * Substitutes of home team
+     *
+     * @return string comma separated uids
+     */
+    public function getSubstitutesHome()
+    {
+        return $this->getProperty('substitutes_home');
+    }
+
+    /**
+     * Substitutes of guest team
+     *
+     * @return string comma separated uids
+     */
+    public function getSubstitutesGuest()
+    {
+        return $this->getProperty('substitutes_guest');
     }
 
     /**
@@ -371,6 +390,70 @@ class tx_cfcleague_models_Match extends tx_rnbase_model_base
         return (((int) $this->getProperty('has_report')) + ((int) $this->getProperty('link_report'))) > 0;
     }
 
+    /**
+     * Liefert das Stadion
+     *
+     * @return tx_cfcleague_models_Stadium|null
+     */
+    public function getArena()
+    {
+        if (! intval($this->getProperty('arena'))) {
+            return null;
+        }
+        tx_rnbase::load('tx_cfcleague_models_Stadium');
+        return tx_cfcleague_models_Stadium::getStadiumInstance($this->getProperty('arena'));
+    }
+
+    /**
+     * Returns the name of arena for this match. This can differ from arena name!
+     *
+     * @return string
+     */
+    public function getStadium()
+    {
+        return $this->getProperty('stadium');
+    }
+
+    /**
+     * Liefert den Referee als Datenobjekt
+     *
+     * @return tx_cfcleague_models_Profile
+     */
+    public function getReferee()
+    {
+        if ($this->getProperty('referee')) {
+            try {
+                tx_rnbase::load('tx_cfcleague_models_Profile');
+                $profile = tx_cfcleague_models_Profile::getProfileInstance($this->getProperty('referee'));
+                return $profile->isValid() ? $profile : null;
+            }
+            catch (Exception $e) {
+                return null;
+            }
+        }
+        return null;
+    }
+    /**
+     *
+     * @return string comma separated uids
+     */
+    public function getAssists()
+    {
+        return $this->getProperty('assists');
+    }
+    /**
+     *
+     * @return int
+     */
+    public function getDate()
+    {
+        return $this->getProperty('date');
+    }
+
+    public function getVisitors()
+    {
+        return $this->getProperty('visitors');
+    }
 
     /**
      * Liefert alle MatchNotes des Spiels als Referenz auf ein Array.
